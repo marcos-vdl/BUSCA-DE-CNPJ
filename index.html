@@ -715,8 +715,9 @@
         const cacheado = cacheGet(cacheKey);
 
         // Dispara a busca da Inscrição Estadual (gratuita, via CNPJ.ws) em paralelo,
-        // sem travar o carregamento dos demais dados do CNPJ
-        document.getElementById('resInscricaoEstadual').innerText = 'Buscando Inscrição Estadual...';
+        // sem travar o carregamento dos demais dados do CNPJ. A própria função
+        // controla a fila/espera do limite de 3 req/min e tenta de novo sozinha.
+        document.getElementById('resInscricaoEstadual').innerText = 'Preparando consulta de Inscrição Estadual...';
         buscarInscricaoEstadual(cnpjLimpo);
 
         try {
@@ -860,9 +861,52 @@
     /* --- BUSCA GRATUITA DA INSCRIÇÃO ESTADUAL (CNPJ.ws) ---
        A IE Estadual é padronizada e coberta por essa API pública gratuita.
        A IE Municipal não é buscada aqui pois varia por prefeitura e não
-       possui uma fonte pública unificada. Limite do plano gratuito: 3 req/min. */
-    async function buscarInscricaoEstadual(cnpjLimpo) {
+       possui uma fonte pública unificada. Limite do plano gratuito: 3 req/min
+       (limite do servidor deles, não é algo que dá pra remover do nosso lado).
+
+       Para não "travar" quando bate no limite, mantemos uma fila local: o app
+       conta as chamadas feitas nos últimos 60s e, se já usou as 3, espera
+       sozinho o tempo necessário antes de disparar a próxima. Se mesmo assim
+       vier 429 (ex.: outra aba usando a mesma API), tenta de novo automaticamente
+       com backoff, sem exigir ação manual do usuário. */
+    const IE_JANELA_MS = 60 * 1000;
+    const IE_LIMITE_JANELA = 3;
+    let ieChamadasRecentes = []; // timestamps das últimas chamadas bem-sucedidas/disparadas
+
+    function registrarChamadaIE() {
+        const agora = Date.now();
+        ieChamadasRecentes = ieChamadasRecentes.filter(t => agora - t < IE_JANELA_MS);
+        ieChamadasRecentes.push(agora);
+    }
+
+    function tempoDeEsperaIE() {
+        const agora = Date.now();
+        ieChamadasRecentes = ieChamadasRecentes.filter(t => agora - t < IE_JANELA_MS);
+        if (ieChamadasRecentes.length < IE_LIMITE_JANELA) return 0;
+        const maisAntiga = Math.min(...ieChamadasRecentes);
+        return Math.max(0, IE_JANELA_MS - (agora - maisAntiga)) + 300; // pequena folga
+    }
+
+    function esperar(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    async function aguardarSlotIE(ieContainer) {
+        let espera = tempoDeEsperaIE();
+        while (espera > 0) {
+            let restante = Math.ceil(espera / 1000);
+            while (restante > 0) {
+                ieContainer.innerText = `Aguardando limite da API de IE (3 consultas/min)... tentando novamente em ${restante}s`;
+                await esperar(1000);
+                restante--;
+            }
+            espera = tempoDeEsperaIE();
+        }
+    }
+
+    async function buscarInscricaoEstadual(cnpjLimpo, tentativa = 1) {
         const ieContainer = document.getElementById('resInscricaoEstadual');
+        const MAX_TENTATIVAS = 4;
 
         const cacheKey = `cnpj_ie_${cnpjLimpo}`;
         const cacheado = cacheGet(cacheKey);
@@ -871,11 +915,27 @@
             return;
         }
 
+        // Espera automaticamente até haver um slot dentro do limite de 3/min
+        await aguardarSlotIE(ieContainer);
+        ieContainer.innerText = 'Buscando Inscrição Estadual...';
+
         try {
+            registrarChamadaIE();
             const response = await fetch(`https://publica.cnpj.ws/cnpj/${cnpjLimpo}`);
 
             if (response.status === 429) {
-                ieContainer.innerText = 'Muitas consultas de IE em sequência (limite de 3/min). Aguarde alguns segundos.';
+                if (tentativa < MAX_TENTATIVAS) {
+                    // Backoff progressivo (20s, 30s, 40s...) e tenta de novo sozinho
+                    const esperaExtra = 20000 + (tentativa - 1) * 10000;
+                    let restante = Math.ceil(esperaExtra / 1000);
+                    while (restante > 0) {
+                        ieContainer.innerText = `A API de IE recusou por excesso de consultas. Tentando novamente em ${restante}s (tentativa ${tentativa}/${MAX_TENTATIVAS})...`;
+                        await esperar(1000);
+                        restante--;
+                    }
+                    return buscarInscricaoEstadual(cnpjLimpo, tentativa + 1);
+                }
+                ieContainer.innerText = 'A API de Inscrição Estadual está com muitas consultas no momento. Tente novamente em alguns minutos.';
                 return;
             }
             if (!response.ok) throw new Error('Falha na consulta da IE');
@@ -898,6 +958,15 @@
             ieContainer.innerHTML = ieHtml;
             cacheSet(cacheKey, ieHtml);
         } catch (e) {
+            if (tentativa < MAX_TENTATIVAS) {
+                let restante = 15;
+                while (restante > 0) {
+                    ieContainer.innerText = `Erro de rede ao buscar a IE. Tentando novamente em ${restante}s (tentativa ${tentativa}/${MAX_TENTATIVAS})...`;
+                    await esperar(1000);
+                    restante--;
+                }
+                return buscarInscricaoEstadual(cnpjLimpo, tentativa + 1);
+            }
             ieContainer.innerText = 'Não foi possível consultar a Inscrição Estadual no momento (erro de rede ou serviço fora do ar).';
         }
     }
