@@ -114,6 +114,9 @@
         .suggestion-item:hover {
             background-color: #f1f3f5;
         }
+        .suggestion-item.active {
+            background-color: #e9ecef;
+        }
 
         /* MODAIS */
         .modal-overlay {
@@ -181,6 +184,7 @@
             padding: 10px;
             border-radius: 4px;
             border-left: 3px solid #6c757d;
+            position: relative;
         }
         .info-box.highlight {
             border-left-color: #28a745;
@@ -194,6 +198,12 @@
             background-color: #e9ecef;
             border-left-color: #0056b3;
         }
+        .label-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 6px;
+        }
         .label {
             font-size: 11px;
             color: #6c757d;
@@ -205,6 +215,32 @@
             font-size: 14px;
             color: #212529;
             word-break: break-word;
+        }
+        .value.status-ativa { color: #1e7e34; font-weight: bold; }
+        .value.status-baixada { color: #c82333; font-weight: bold; }
+        .copy-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: #007bff;
+            flex-shrink: 0;
+        }
+        .copy-btn:hover {
+            background-color: #e9ecef;
+        }
+        .copy-btn.copied {
+            color: #28a745;
+        }
+        .link-inline {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .link-inline:hover {
+            text-decoration: underline;
         }
         .map-btn {
             display: inline-block;
@@ -227,6 +263,72 @@
         }
         .qsa-list li {
             margin-bottom: 6px;
+        }
+
+        /* RODAPÉ */
+        footer {
+            text-align: center;
+            font-size: 13px;
+            color: #6c757d;
+            padding: 10px 0 5px 0;
+        }
+        footer a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* RESPONSIVIDADE */
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+                gap: 14px;
+            }
+            .container {
+                padding: 16px;
+                border-radius: 6px;
+                max-width: 100%;
+            }
+            h2 {
+                font-size: 17px;
+            }
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            input, select, button {
+                font-size: 16px; /* evita zoom automático no iOS */
+            }
+            .modal-content {
+                padding: 16px;
+                max-height: 95vh;
+                border-radius: 6px;
+            }
+            .modal-header h3 {
+                font-size: 16px;
+            }
+            .label {
+                font-size: 10px;
+            }
+            .value {
+                font-size: 13px;
+            }
+            .map-btn, .copy-btn {
+                font-size: 12px;
+            }
+            .suggestions-list {
+                max-height: 45vh;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .modal-overlay {
+                padding: 6px;
+            }
+            .modal-content {
+                padding: 12px;
+            }
         }
     </style>
 </head>
@@ -256,7 +358,10 @@
         
         <div class="info-grid">
             <div class="info-box">
-                <div class="label">CNPJ</div>
+                <div class="label-row">
+                    <div class="label">CNPJ</div>
+                    <button class="copy-btn" onclick="copiarTexto('resCnpj', this)" title="Copiar CNPJ">📋</button>
+                </div>
                 <div class="value" id="resCnpj">-</div>
             </div>
             <div class="info-box">
@@ -280,8 +385,20 @@
                 <div class="value" id="resRegime">-</div>
             </div>
 
+            <div class="info-box full-width">
+                <div class="label">E-mail</div>
+                <div class="value" id="resEmail">-</div>
+            </div>
+            <div class="info-box">
+                <div class="label">Capital Social</div>
+                <div class="value" id="resCapitalSocial">-</div>
+            </div>
+
             <div class="info-box full-width highlight">
-                <div class="label">Inscrição Estadual (IE)</div>
+                <div class="label-row">
+                    <div class="label">Inscrição Estadual (IE)</div>
+                    <button class="copy-btn" onclick="copiarTexto('resInscricaoEstadual', this)" title="Copiar IE">📋</button>
+                </div>
                 <div class="value" id="resInscricaoEstadual">-</div>
             </div>
 
@@ -308,7 +425,10 @@
             </div>
             
             <div class="info-box full-width clickable" onclick="abrirModalEnderecoEmpresa()" title="Clique para ver no mapa">
-                <div class="label">Logradouro / Endereço (Clique para Ver Localização) 📍</div>
+                <div class="label-row">
+                    <div class="label">Logradouro / Endereço (Clique para Ver Localização) 📍</div>
+                    <button class="copy-btn" onclick="event.stopPropagation(); copiarTexto('resEndereco', this)" title="Copiar endereço">📋</button>
+                </div>
                 <div class="value" id="resEndereco">-</div>
             </div>
         </div>
@@ -364,7 +484,10 @@
                 <div class="value" id="resNomeLocal">-</div>
             </div>
             <div class="info-box">
-                <div class="label">CEP</div>
+                <div class="label-row">
+                    <div class="label">CEP</div>
+                    <button class="copy-btn" onclick="copiarTexto('resCep', this)" title="Copiar CEP">📋</button>
+                </div>
                 <div class="value" id="resCep">-</div>
             </div>
             <div class="info-box">
@@ -388,9 +511,18 @@
                 <div class="value" id="resCepComp">-</div>
             </div>
             <div class="info-box full-width highlight">
-                <div class="label">Navegação Google Maps</div>
-                <div class="value">
+                <div class="label-row">
+                    <div class="label">Endereço completo</div>
+                    <button class="copy-btn" onclick="copiarEnderecoCompleto()" title="Copiar endereço completo">📋 Copiar tudo</button>
+                </div>
+                <div class="value" id="resEnderecoCompleto">-</div>
+            </div>
+            <div class="info-box full-width highlight">
+                <div class="label">Navegação</div>
+                <div class="value" style="display:flex; gap:10px; flex-wrap:wrap;">
                     <a id="btnMap" href="#" target="_blank" class="map-btn">Abrir no Google Maps 📍</a>
+                    <a id="btnWhats" href="#" target="_blank" class="map-btn" style="background-color:#25D366; display:none;">WhatsApp 💬</a>
+                    <a id="btnTel" href="#" class="map-btn" style="background-color:#6c757d; display:none;">Ligar 📞</a>
                 </div>
             </div>
         </div>
@@ -399,6 +531,86 @@
 
 <script>
     let empresaAtualDados = null;
+
+    /* --- UTILITÁRIOS: COPIAR, CACHE, VALIDAÇÃO --- */
+
+    function copiarTexto(elementId, btnEl) {
+        const el = document.getElementById(elementId);
+        if (!el) return;
+        const texto = el.innerText.trim();
+        if (!texto || texto === '-') return;
+
+        navigator.clipboard.writeText(texto).then(() => {
+            if (btnEl) {
+                const originalHtml = btnEl.innerHTML;
+                btnEl.innerHTML = '✅';
+                btnEl.classList.add('copied');
+                setTimeout(() => {
+                    btnEl.innerHTML = originalHtml;
+                    btnEl.classList.remove('copied');
+                }, 1500);
+            }
+        }).catch(() => {});
+    }
+
+    function copiarEnderecoCompleto() {
+        const partes = [
+            document.getElementById('resCepRua').innerText,
+            document.getElementById('resCepBairro').innerText,
+            document.getElementById('resCepCidade').innerText + '/' + document.getElementById('resCepUf').innerText,
+            document.getElementById('resCep').innerText
+        ].filter(t => t && t !== '-' && t !== 'Não Informado' && t !== 'Bairro não informado');
+        navigator.clipboard.writeText(partes.join(', ')).catch(() => {});
+    }
+
+    // Validação do dígito verificador do CNPJ (evita chamadas de API para CNPJ inválido)
+    function validarCNPJ(cnpj) {
+        cnpj = cnpj.replace(/\D/g, '');
+        if (cnpj.length !== 14) return false;
+        if (/^(\d)\1{13}$/.test(cnpj)) return false; // todos os dígitos iguais
+
+        const calcularDigito = (base) => {
+            let peso = base.length - 7;
+            let soma = 0;
+            for (let i = 0; i < base.length; i++) {
+                soma += parseInt(base[i]) * peso;
+                peso--;
+                if (peso < 2) peso = 9;
+            }
+            const resto = soma % 11;
+            return resto < 2 ? 0 : 11 - resto;
+        };
+
+        const base12 = cnpj.substring(0, 12);
+        const dv1 = calcularDigito(base12);
+        const dv2 = calcularDigito(base12 + dv1);
+
+        return cnpj === base12 + dv1.toString() + dv2.toString();
+    }
+
+    // Cache simples em memória + localStorage com TTL (evita repetir chamadas à API)
+    const CACHE_TTL_MS = 1000 * 60 * 30; // 30 minutos
+
+    function cacheGet(chave) {
+        try {
+            const raw = localStorage.getItem(chave);
+            if (!raw) return null;
+            const obj = JSON.parse(raw);
+            if (Date.now() - obj.timestamp > CACHE_TTL_MS) {
+                localStorage.removeItem(chave);
+                return null;
+            }
+            return obj.dados;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function cacheSet(chave, dados) {
+        try {
+            localStorage.setItem(chave, JSON.stringify({ timestamp: Date.now(), dados }));
+        } catch (e) { /* localStorage cheio ou indisponível: ignora silenciosamente */ }
+    }
 
     /* --- LÓGICA DO CNPJ E QUADRO DE SÓCIOS (QSA) --- */
     let debounceCnpjTimer;
@@ -432,7 +644,14 @@
     async function buscarEmpresasPorNome(termo) {
         try {
             const response = await fetch(`https://publica.cnpj.ws/cnpj/pesquisa?query=${encodeURIComponent(termo)}&limite=5`);
+
+            if (response.status === 429) {
+                cnpjSuggestionsList.style.display = 'none';
+                showError("Muitas consultas em sequência. Aguarde alguns segundos e tente novamente.");
+                return;
+            }
             if (!response.ok) return;
+
             const data = await response.json();
 
             if (data.estabelecimento && data.estabelecimento.length > 0) {
@@ -468,6 +687,10 @@
         const cnpjLimpo = input.replace(/\D/g, '');
 
         if (cnpjLimpo.length === 14) {
+            if (!validarCNPJ(cnpjLimpo)) {
+                showError("CNPJ inválido: os dígitos verificadores não conferem. Confira o número digitado.");
+                return;
+            }
             buscarDadosCNPJ(cnpjLimpo);
         } else if (input.length >= 3) {
             buscarEmpresasPorNome(input);
@@ -487,22 +710,45 @@
         btn.disabled = true;
         loading.style.display = 'block';
 
+        // Verifica cache local antes de bater na API
+        const cacheKey = `cnpj_dados_${cnpjLimpo}`;
+        const cacheado = cacheGet(cacheKey);
+
         // Dispara a busca da Inscrição Estadual (gratuita, via CNPJ.ws) em paralelo,
         // sem travar o carregamento dos demais dados do CNPJ
         document.getElementById('resInscricaoEstadual').innerText = 'Buscando Inscrição Estadual...';
         buscarInscricaoEstadual(cnpjLimpo);
 
         try {
-            const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpjLimpo}`);
+            let data;
+            if (cacheado) {
+                data = cacheado;
+            } else {
+                const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpjLimpo}`);
 
-            if (!response.ok) {
-                throw new Error("CNPJ não encontrado ou erro na resposta da consulta.");
+                if (response.status === 404) {
+                    throw new Error("CNPJ não encontrado na base da Receita Federal. Confira o número digitado.");
+                }
+                if (!response.ok) {
+                    throw new Error("Não foi possível consultar o CNPJ agora (erro de rede ou serviço fora do ar). Tente novamente em instantes.");
+                }
+
+                data = await response.json();
+                cacheSet(cacheKey, data);
             }
 
-            const data = await response.json();
-            
             document.getElementById('resCnpj').innerText = data.cnpj ? data.cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5") : '-';
-            document.getElementById('resSituacao').innerText = data.descricao_situacao_cadastral || 'Não Informado';
+
+            const situacaoEl = document.getElementById('resSituacao');
+            situacaoEl.innerText = data.descricao_situacao_cadastral || 'Não Informado';
+            situacaoEl.classList.remove('status-ativa', 'status-baixada');
+            const situacaoTexto = (data.descricao_situacao_cadastral || '').toUpperCase();
+            if (situacaoTexto === 'ATIVA') {
+                situacaoEl.classList.add('status-ativa');
+            } else if (situacaoTexto) {
+                situacaoEl.classList.add('status-baixada');
+            }
+
             document.getElementById('resNome').innerText = data.razao_social || 'Não Informado';
             document.getElementById('resFantasia').innerText = data.nome_fantasia || 'Não Possui';
             
@@ -519,6 +765,19 @@
                 document.getElementById('resRegime').innerText = "Não Optante";
             } else {
                 document.getElementById('resRegime').innerText = "Não informado";
+            }
+            if (data.opcao_pelo_mei === true) {
+                document.getElementById('resRegime').innerText += " — Selo MEI ✅";
+            }
+
+            document.getElementById('resEmail').innerText = data.email || 'Não Informado';
+            if (data.capital_social !== undefined && data.capital_social !== null) {
+                const capitalNum = Number(data.capital_social);
+                document.getElementById('resCapitalSocial').innerText = isNaN(capitalNum)
+                    ? String(data.capital_social)
+                    : capitalNum.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            } else {
+                document.getElementById('resCapitalSocial').innerText = 'Não Informado';
             }
 
             const qsaContainer = document.getElementById('resQSA');
@@ -559,7 +818,14 @@
                 cnaeSecContainer.innerText = 'Nenhuma atividade secundária cadastrada';
             }
 
-            document.getElementById('resTelefone').innerText = data.ddd_telefone_1 ? `(${data.ddd_telefone_1})` : 'Não Informado';
+            const telefoneEl = document.getElementById('resTelefone');
+            if (data.ddd_telefone_1) {
+                const numeroLimpo = data.ddd_telefone_1.replace(/\D/g, '');
+                telefoneEl.innerHTML = `<a class="link-inline" href="tel:+55${numeroLimpo}">${data.ddd_telefone_1}</a> · <a class="link-inline" href="https://wa.me/55${numeroLimpo}" target="_blank">WhatsApp</a>`;
+            } else {
+                telefoneEl.innerText = 'Não Informado';
+            }
+
             document.getElementById('resLocalidade').innerText = `${data.municipio || ''} / ${data.uf || ''}`;
 
             const tipoLogradouro = data.descricao_tipo_de_logradouro || '';
@@ -594,30 +860,45 @@
     /* --- BUSCA GRATUITA DA INSCRIÇÃO ESTADUAL (CNPJ.ws) ---
        A IE Estadual é padronizada e coberta por essa API pública gratuita.
        A IE Municipal não é buscada aqui pois varia por prefeitura e não
-       possui uma fonte pública unificada. */
+       possui uma fonte pública unificada. Limite do plano gratuito: 3 req/min. */
     async function buscarInscricaoEstadual(cnpjLimpo) {
         const ieContainer = document.getElementById('resInscricaoEstadual');
+
+        const cacheKey = `cnpj_ie_${cnpjLimpo}`;
+        const cacheado = cacheGet(cacheKey);
+        if (cacheado) {
+            ieContainer.innerHTML = cacheado;
+            return;
+        }
+
         try {
             const response = await fetch(`https://publica.cnpj.ws/cnpj/${cnpjLimpo}`);
+
+            if (response.status === 429) {
+                ieContainer.innerText = 'Muitas consultas de IE em sequência (limite de 3/min). Aguarde alguns segundos.';
+                return;
+            }
             if (!response.ok) throw new Error('Falha na consulta da IE');
 
             const data = await response.json();
             const lista = data.estabelecimento && data.estabelecimento.inscricoes_estaduais;
 
+            let ieHtml;
             if (lista && lista.length > 0) {
-                let ieHtml = '<ul class="qsa-list">';
+                ieHtml = '<ul class="qsa-list">';
                 lista.forEach(ie => {
                     const uf = ie.estado ? ie.estado.sigla : 'UF não informada';
                     const situacao = ie.ativo ? '✅ Ativa' : '❌ Inativa';
                     ieHtml += `<li><b>${ie.inscricao_estadual}</b> - ${uf} (${situacao})</li>`;
                 });
                 ieHtml += '</ul>';
-                ieContainer.innerHTML = ieHtml;
             } else {
-                ieContainer.innerText = 'Nenhuma Inscrição Estadual localizada nesta base.';
+                ieHtml = 'Nenhuma Inscrição Estadual localizada nesta base.';
             }
+            ieContainer.innerHTML = ieHtml;
+            cacheSet(cacheKey, ieHtml);
         } catch (e) {
-            ieContainer.innerText = 'Não foi possível consultar a Inscrição Estadual no momento.';
+            ieContainer.innerText = 'Não foi possível consultar a Inscrição Estadual no momento (erro de rede ou serviço fora do ar).';
         }
     }
 
@@ -639,23 +920,52 @@
     let listaCidadesUF = [];
     const cidadeInput = document.getElementById('cidadeInput');
     const cidadesList = document.getElementById('cidadesList');
+    const ufSelect = document.getElementById('ufSelect');
 
-    async function carregarCidadesPorUF() {
-        const uf = document.getElementById('ufSelect').value;
+    // Restaura a última UF/cidade escolhida (evita redigitar toda vez)
+    window.addEventListener('DOMContentLoaded', () => {
+        try {
+            const ultimaUf = localStorage.getItem('ultimaUf');
+            const ultimaCidade = localStorage.getItem('ultimaCidade');
+            if (ultimaUf) {
+                ufSelect.value = ultimaUf;
+                carregarCidadesPorUF(ultimaCidade);
+            }
+        } catch (e) { /* ignora se localStorage indisponível */ }
+    });
+
+    async function carregarCidadesPorUF(cidadeParaRestaurar) {
+        const uf = ufSelect.value;
         listaCidadesUF = [];
-        cidadeInput.value = '';
+        if (!cidadeParaRestaurar) cidadeInput.value = '';
         cidadesList.style.display = 'none';
 
         if (!uf) return;
 
         try {
-            const response = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios`);
-            if (response.ok) {
-                const data = await response.json();
-                listaCidadesUF = data.map(m => m.nome);
+            localStorage.setItem('ultimaUf', uf);
+        } catch (e) {}
+
+        const cacheKey = `ibge_municipios_${uf}`;
+        const cacheado = cacheGet(cacheKey);
+
+        try {
+            if (cacheado) {
+                listaCidadesUF = cacheado;
+            } else {
+                const response = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios`);
+                if (response.ok) {
+                    const data = await response.json();
+                    listaCidadesUF = data.map(m => m.nome);
+                    cacheSet(cacheKey, listaCidadesUF);
+                }
             }
         } catch (e) {
             console.error("Erro ao carregar cidades da UF");
+        }
+
+        if (cidadeParaRestaurar && listaCidadesUF.includes(cidadeParaRestaurar)) {
+            cidadeInput.value = cidadeParaRestaurar;
         }
     }
 
@@ -689,20 +999,35 @@
             div.onclick = () => {
                 cidadeInput.value = cidade;
                 cidadesList.style.display = 'none';
+                try { localStorage.setItem('ultimaCidade', cidade); } catch (e) {}
             };
             cidadesList.appendChild(div);
         });
         cidadesList.style.display = 'block';
     }
 
+    cidadeInput.addEventListener('change', () => {
+        try { localStorage.setItem('ultimaCidade', cidadeInput.value.trim()); } catch (e) {}
+    });
+
     /* --- LÓGICA DE CALIBRAGEM E BUSCA DE LOCAL / EMPRESA / ENDEREÇO --- */
     let debounceTimer;
     const cepRuaInput = document.getElementById('cepRuaInput');
     const suggestionsList = document.getElementById('suggestionsList');
 
+    // Máscara automática de CEP (00000-000) conforme digita
     cepRuaInput.addEventListener('input', function () {
         clearTimeout(debounceTimer);
-        const query = this.value.trim();
+        let query = this.value;
+        const apenasNumeros = query.replace(/\D/g, '');
+
+        if (apenasNumeros.length > 0 && apenasNumeros.length <= 8 && !/[a-zA-Z]/.test(query)) {
+            if (apenasNumeros.length > 5) {
+                query = apenasNumeros.replace(/^(\d{5})(\d{0,3})$/, "$1-$2").replace(/-$/, '');
+                this.value = query;
+            }
+        }
+
         const cepLimpo = query.replace(/\D/g, '');
 
         if (cepLimpo.length === 8) {
@@ -710,15 +1035,15 @@
             return;
         }
 
-        if (query.length >= 3) {
-            debounceTimer = setTimeout(() => buscarSugestoesHibridas(query), 400);
+        if (query.trim().length >= 3) {
+            debounceTimer = setTimeout(() => buscarSugestoesHibridas(query.trim()), 400);
         } else {
             suggestionsList.style.display = 'none';
         }
     });
 
     async function buscarSugestoesHibridas(query) {
-        const uf = document.getElementById('ufSelect').value;
+        const uf = ufSelect.value;
         const cidade = cidadeInput.value.trim();
         const errorDiv = document.getElementById('errorMessageCep');
         errorDiv.style.display = 'none';
@@ -728,15 +1053,25 @@
             return;
         }
 
-        // CAMADA 1: Busca geográfica no Nominatim (OpenStreetMap)
+        // Cache local de buscas híbridas por termo (evita repetir chamadas)
+        const cacheKey = `busca_local_${uf}_${cidade}_${query}`.toLowerCase();
+        const cacheado = cacheGet(cacheKey);
+        if (cacheado) {
+            renderizarSugestoesGenerico(cacheado.tipo, cacheado.dados, query, cidade, uf);
+            return;
+        }
+
+        // CAMADA 1: Busca geográfica no Nominatim (OpenStreetMap), restrita ao Brasil
         try {
             const termoComposto = `${query}, ${cidade}, ${uf}, Brasil`;
-            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termoComposto)}&addressdetails=1&limit=8`);
+            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termoComposto)}&addressdetails=1&limit=8&countrycodes=br`;
+            const response = await fetch(url);
             
             if (response.ok) {
                 const data = await response.json();
                 if (Array.isArray(data) && data.length > 0) {
                     renderizarSugestoesNominatim(data);
+                    cacheSet(cacheKey, { tipo: 'nominatim', dados: data });
                     return;
                 }
             }
@@ -745,24 +1080,33 @@
         // CAMADA 2: Busca por empresas/estabelecimentos via CNPJ público se não estiver no mapa
         try {
             const responseCnpj = await fetch(`https://publica.cnpj.ws/cnpj/pesquisa?query=${encodeURIComponent(query)}&limite=8`);
-            if (responseCnpj.ok) {
+            if (responseCnpj.status === 429) {
+                showErrorCep("Muitas consultas em sequência na base de empresas. Aguarde alguns segundos.");
+            } else if (responseCnpj.ok) {
                 const dataCnpj = await responseCnpj.json();
                 if (dataCnpj.estabelecimento && dataCnpj.estabelecimento.length > 0) {
-                    // Filtra empresas no estado informado
+                    // Filtra empresas no estado informado (mantém a busca restrita ao Brasil/UF)
                     const empresasFiltradas = dataCnpj.estabelecimento.filter(e => 
                         e.estado && e.estado.sigla.toUpperCase() === uf.toUpperCase()
                     );
 
                     if (empresasFiltradas.length > 0) {
                         renderizarSugestoesEmpresas(empresasFiltradas);
+                        cacheSet(cacheKey, { tipo: 'empresas', dados: empresasFiltradas });
                         return;
                     }
                 }
             }
         } catch (e) {}
 
-        // CAMADA 3: Fallback de sugestão direta para busca no Google Maps
+        // CAMADA 3: Fallback de sugestão direta para busca no Google Maps (restrito ao Brasil)
         renderizarSugestoesFallbackGoogleMaps(query, cidade, uf);
+    }
+
+    function renderizarSugestoesGenerico(tipo, dados, query, cidade, uf) {
+        if (tipo === 'nominatim') renderizarSugestoesNominatim(dados);
+        else if (tipo === 'empresas') renderizarSugestoesEmpresas(dados);
+        else renderizarSugestoesFallbackGoogleMaps(query, cidade, uf);
     }
 
     function renderizarSugestoesNominatim(lista) {
@@ -780,8 +1124,10 @@
         const nomePrincipal = partesNome[0].trim();
         const rua = addr.road || addr.pedestrian || nomePrincipal;
         const cidade = addr.city || addr.town || addr.municipality || document.getElementById('cidadeInput').value;
-        const estado = addr.state || document.getElementById('ufSelect').value;
+        const estado = addr.state || ufSelect.value;
         const cep = addr.postcode || 'Não informado';
+        const lat = item.lat;
+        const lon = item.lon;
 
         const div = document.createElement('div');
         div.className = 'suggestion-item';
@@ -796,7 +1142,9 @@
                 neighborhood: bairro,
                 street: rua,
                 houseNumber: numero,
-                complement: partesNome.length > 2 ? partesNome[1].trim() : ''
+                complement: partesNome.length > 2 ? partesNome[1].trim() : '',
+                lat: lat,
+                lon: lon
             });
             suggestionsList.style.display = 'none';
         };
@@ -813,7 +1161,7 @@
             const num = item.numero || 'S/N';
             const bairro = item.bairro || 'Bairro não informado';
             const cidade = item.cidade ? item.cidade.nome : document.getElementById('cidadeInput').value;
-            const estado = item.estado ? item.estado.sigla : document.getElementById('ufSelect').value;
+            const estado = item.estado ? item.estado.sigla : ufSelect.value;
 
             const div = document.createElement('div');
             div.className = 'suggestion-item';
@@ -835,16 +1183,16 @@
         suggestionsList.style.display = 'block';
     }
 
-    /* --- TRATAMENTO DE FALLBACK DIRETO PARA GOOGLE MAPS --- */
+    /* --- TRATAMENTO DE FALLBACK DIRETO PARA GOOGLE MAPS (restrito ao Brasil) --- */
 function renderizarSugestoesFallbackGoogleMaps(query, cidade, uf) {
     suggestionsList.innerHTML = '';
     const div = document.createElement('div');
     div.className = 'suggestion-item';
-    div.innerHTML = `<b>🔍 Buscar "${query}" diretamente no Google Maps</b><br><small>Localizar estabelecimento em ${cidade} / ${uf}</small>`;
+    div.innerHTML = `<b>🔍 Buscar "${query}" diretamente no Google Maps</b><br><small>Localizar estabelecimento em ${cidade} / ${uf}, Brasil</small>`;
     
     div.onclick = () => {
-        // Redireciona diretamente para o Google Maps com o termo correto
-        const termoCompleto = encodeURIComponent(`${query}, ${cidade} - ${uf}`);
+        // Redireciona diretamente para o Google Maps com o termo correto, restrito ao Brasil
+        const termoCompleto = encodeURIComponent(`${query}, ${cidade} - ${uf}, Brasil`);
         const urlGoogleMaps = `https://www.google.com/maps/search/?api=1&query=${termoCompleto}`;
         
         // Abre o Maps em nova aba sem preencher modal com dados fictícios
@@ -859,7 +1207,7 @@ function renderizarSugestoesFallbackGoogleMaps(query, cidade, uf) {
     async function consultarEndereçoHibrido() {
         const query = cepRuaInput.value.trim();
         const cepLimpo = query.replace(/\D/g, '');
-        const uf = document.getElementById('ufSelect').value;
+        const uf = ufSelect.value;
         const cidade = cidadeInput.value.trim();
 
         const btn = document.getElementById('btnConsultarCep');
@@ -873,10 +1221,17 @@ function renderizarSugestoesFallbackGoogleMaps(query, cidade, uf) {
             btn.disabled = true;
             loading.style.display = 'block';
 
+            const cacheKey = `cep_dados_${cepLimpo}`;
+            const cacheado = cacheGet(cacheKey);
+
             try {
-                const response = await fetch(`https://brasilapi.com.br/api/cep/v2/${cepLimpo}`);
-                if (!response.ok) throw new Error("CEP não encontrado.");
-                const data = await response.json();
+                let data;
+                if (cacheado) {
+                    data = cacheado;
+                } else {
+                    data = await buscarCepComFallback(cepLimpo);
+                    cacheSet(cacheKey, data);
+                }
                 exibirModalCep({
                     nomeLocal: data.street || 'Endereço por CEP',
                     ...data
@@ -912,6 +1267,42 @@ function renderizarSugestoesFallbackGoogleMaps(query, cidade, uf) {
         }
     }
 
+    // Busca de CEP com fallback: BrasilAPI (agrega Correios/ViaCEP/WideNet) -> ViaCEP direto
+    async function buscarCepComFallback(cepLimpo) {
+        try {
+            const response = await fetch(`https://brasilapi.com.br/api/cep/v2/${cepLimpo}`);
+            if (response.status === 404) {
+                throw { tipo: 'nao_encontrado' };
+            }
+            if (!response.ok) {
+                throw { tipo: 'rede' };
+            }
+            return await response.json();
+        } catch (erroBrasilApi) {
+            // Se já sabemos que o CEP não existe, ainda tentamos o ViaCEP como segunda opinião
+            try {
+                const responseViaCep = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`);
+                if (!responseViaCep.ok) throw new Error();
+                const dataViaCep = await responseViaCep.json();
+                if (dataViaCep.erro) {
+                    throw new Error("CEP não encontrado em nenhuma base consultada (BrasilAPI/ViaCEP).");
+                }
+                // Normaliza os campos do ViaCEP para o mesmo formato usado no restante do app
+                return {
+                    cep: dataViaCep.cep ? dataViaCep.cep.replace(/\D/g, '') : cepLimpo,
+                    state: dataViaCep.uf,
+                    city: dataViaCep.localidade,
+                    neighborhood: dataViaCep.bairro,
+                    street: dataViaCep.logradouro,
+                    complement: dataViaCep.complemento || ''
+                };
+            } catch (erroViaCep) {
+                if (erroViaCep.message) throw erroViaCep;
+                throw new Error("Não foi possível consultar o CEP agora (erro de rede ou serviços fora do ar). Tente novamente em instantes.");
+            }
+        }
+    }
+
     function exibirModalCep(data) {
     document.getElementById('resNomeLocal').innerText = data.nomeLocal || data.street || '-';
     document.getElementById('resCep').innerText = data.cep ? data.cep.replace(/^(\d{5})(\d{3})$/, "$1-$2") : '-';
@@ -922,16 +1313,38 @@ function renderizarSugestoesFallbackGoogleMaps(query, cidade, uf) {
     const num = data.houseNumber || (data.numero ? `Nº ${data.numero}` : 'S/N');
     document.getElementById('resCepRua').innerText = ruaBase !== 'Não Informado' ? `${ruaBase}, ${num}` : ruaBase;
     
-    document.getElementById('resCepBairro').innerText = data.neighborhood || data.bairro || 'Bairro não informado';
-    document.getElementById('resCepCidade').innerText = data.city || data.localidade || 'Não Informado';
+    const bairroTexto = data.neighborhood || data.bairro || 'Bairro não informado';
+    document.getElementById('resCepBairro').innerText = bairroTexto;
+    const cidadeTexto = data.city || data.localidade || 'Não Informado';
+    document.getElementById('resCepCidade').innerText = cidadeTexto;
     document.getElementById('resCepComp').innerText = data.complement || data.complemento || 'Sem complemento';
 
     const termoMapa = `${ruaBase}, ${num}`;
-    const cidade = data.city || data.localidade || '';
     const uf = data.state || data.uf || '';
-    const queryMapa = encodeURIComponent(`${termoMapa}, ${cidade} - ${uf}`);
-    
-    document.getElementById('btnMap').href = `https://www.google.com/maps/search/?api=1&query=${queryMapa}`;
+    document.getElementById('resEnderecoCompleto').innerText = [ruaBase !== 'Não Informado' ? `${ruaBase}, ${num}` : null, bairroTexto !== 'Bairro não informado' ? bairroTexto : null, `${cidadeTexto}/${uf}`, data.cep ? data.cep.replace(/^(\d{5})(\d{3})$/, "$1-$2") : null].filter(Boolean).join(', ');
+
+    // Usa lat/lon do Nominatim quando disponível (muito mais preciso que buscar pelo nome de novo)
+    const btnMap = document.getElementById('btnMap');
+    if (data.lat && data.lon) {
+        btnMap.href = `https://www.google.com/maps/search/?api=1&query=${data.lat},${data.lon}`;
+    } else {
+        const queryMapa = encodeURIComponent(`${termoMapa}, ${cidadeTexto} - ${uf}, Brasil`);
+        btnMap.href = `https://www.google.com/maps/search/?api=1&query=${queryMapa}`;
+    }
+
+    // Links de telefone/WhatsApp quando houver telefone associado ao local
+    const btnWhats = document.getElementById('btnWhats');
+    const btnTel = document.getElementById('btnTel');
+    if (data.telefone || data.phone) {
+        const telLimpo = (data.telefone || data.phone).replace(/\D/g, '');
+        btnWhats.href = `https://wa.me/55${telLimpo}`;
+        btnTel.href = `tel:+55${telLimpo}`;
+        btnWhats.style.display = 'inline-block';
+        btnTel.style.display = 'inline-block';
+    } else {
+        btnWhats.style.display = 'none';
+        btnTel.style.display = 'none';
+    }
 
     abrirModalCep();
 }
@@ -943,6 +1356,42 @@ function renderizarSugestoesFallbackGoogleMaps(query, cidade, uf) {
         errorDiv.innerText = msg;
         errorDiv.style.display = 'block';
     }
+
+    /* Navegação por teclado (setas + Enter) nas listas de sugestão */
+    function habilitarNavegacaoTeclado(inputEl, listaEl) {
+        inputEl.addEventListener('keydown', function (e) {
+            if (listaEl.style.display !== 'block') return;
+            const itens = Array.from(listaEl.querySelectorAll('.suggestion-item'));
+            if (itens.length === 0) return;
+
+            let indiceAtivo = itens.findIndex(i => i.classList.contains('active'));
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (indiceAtivo >= 0) itens[indiceAtivo].classList.remove('active');
+                indiceAtivo = (indiceAtivo + 1) % itens.length;
+                itens[indiceAtivo].classList.add('active');
+                itens[indiceAtivo].scrollIntoView({ block: 'nearest' });
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (indiceAtivo >= 0) itens[indiceAtivo].classList.remove('active');
+                indiceAtivo = (indiceAtivo - 1 + itens.length) % itens.length;
+                itens[indiceAtivo].classList.add('active');
+                itens[indiceAtivo].scrollIntoView({ block: 'nearest' });
+            } else if (e.key === 'Enter') {
+                if (indiceAtivo >= 0) {
+                    e.preventDefault();
+                    itens[indiceAtivo].click();
+                }
+            } else if (e.key === 'Escape') {
+                listaEl.style.display = 'none';
+            }
+        });
+    }
+
+    habilitarNavegacaoTeclado(cnpjInput, cnpjSuggestionsList);
+    habilitarNavegacaoTeclado(cidadeInput, cidadesList);
+    habilitarNavegacaoTeclado(cepRuaInput, suggestionsList);
 
     /* Ocultar listas ao clicar fora */
     document.addEventListener('click', function(e) {
