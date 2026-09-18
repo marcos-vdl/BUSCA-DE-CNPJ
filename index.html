@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consulta CNPJ e Busca de Endereço</title>
+    <link rel="icon" href="./images (1).png" type="image/png">
+    
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 550px;
+            box-sizing: border-box;
+        }
+        h2 {
+            margin-top: 0;
+            color: #333;
+            text-align: center;
+            font-size: 20px;
+        }
+        .form-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        input, select {
+            padding: 10px 12px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 12px 20px;
+            font-size: 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .error {
+            color: #dc3545;
+            background-color: #f8d7da;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 15px;
+            display: none;
+            font-size: 14px;
+        }
+        .loading {
+            text-align: center;
+            display: none;
+            color: #007bff;
+            font-weight: bold;
+            margin-top: 15px;
+        }
+
+        /* SUGESTÕES DE AUTOCOMPLETE */
+        .suggestions-container {
+            position: relative;
+            width: 100%;
+        }
+        .suggestions-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 0 0 4px 4px;
+            max-height: 220px;
+            overflow-y: auto;
+            z-index: 999;
+            display: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .suggestion-item {
+            padding: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+        .suggestion-item:hover {
+            background-color: #f1f3f5;
+        }
+
+        /* MODAIS */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 15px;
+            box-sizing: border-box;
+        }
+        .modal-content {
+            background-color: #ffffff;
+            border-radius: 8px;
+            width: 100%;
+            max-width: 650px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            position: relative;
+            padding: 25px;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .modal-header h3 {
+            margin: 0;
+            color: #007bff;
+        }
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            font-weight: bold;
+            color: #6c757d;
+            cursor: pointer;
+            padding: 0;
+        }
+        .close-btn:hover {
+            color: #000;
+        }
+
+        /* GRID DENTRO DOS MODAIS */
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+        @media(min-width: 480px) {
+            .info-grid { grid-template-columns: 1fr 1fr; }
+            .full-width { grid-column: span 2; }
+        }
+        .info-box {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            border-left: 3px solid #6c757d;
+        }
+        .info-box.highlight {
+            border-left-color: #28a745;
+        }
+        .info-box.clickable {
+            cursor: pointer;
+            transition: background-color 0.2s, border-left-color 0.2s;
+            border-left-color: #007bff;
+        }
+        .info-box.clickable:hover {
+            background-color: #e9ecef;
+            border-left-color: #0056b3;
+        }
+        .label {
+            font-size: 11px;
+            color: #6c757d;
+            text-transform: uppercase;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        .value {
+            font-size: 14px;
+            color: #212529;
+            word-break: break-word;
+        }
+        .map-btn {
+            display: inline-block;
+            margin-top: 5px;
+            padding: 8px 12px;
+            background-color: #28a745;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+        .map-btn:hover {
+            background-color: #218838;
+        }
+        .qsa-list {
+            margin: 0;
+            padding-left: 18px;
+            font-size: 13px;
+        }
+        .qsa-list li {
+            margin-bottom: 6px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- CONTAINER CONSULTA CNPJ -->
+<div class="container">
+    <h2>Consulta de CNPJ / Nome da Empresa</h2>
+    
+    <div class="form-group suggestions-container">
+        <input type="text" id="cnpjInput" placeholder="Digite o CNPJ ou Razão Social / Nome Fantasia" autocomplete="off">
+        <div id="cnpjSuggestionsList" class="suggestions-list"></div>
+    </div>
+    <button id="btnConsultar" onclick="consultarCNPJOuNome()" style="margin-top: 5px;">Buscar CNPJ</button>
+
+    <div id="loading" class="loading">Buscando dados da empresa...</div>
+    <div id="errorMessage" class="error"></div>
+</div>
+
+<!-- MODAL CNPJ -->
+<div id="cnpjModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Detalhes do CNPJ</h3>
+            <button class="close-btn" onclick="fecharModal()">&times;</button>
+        </div>
+        
+        <div class="info-grid">
+            <div class="info-box">
+                <div class="label">CNPJ</div>
+                <div class="value" id="resCnpj">-</div>
+            </div>
+            <div class="info-box">
+                <div class="label">Situação Cadastral</div>
+                <div class="value" id="resSituacao">-</div>
+            </div>
+            <div class="info-box full-width">
+                <div class="label">Razão Social / Nome</div>
+                <div class="value" id="resNome">-</div>
+            </div>
+            <div class="info-box full-width">
+                <div class="label">Nome Fantasia</div>
+                <div class="value" id="resFantasia">-</div>
+            </div>
+            <div class="info-box">
+                <div class="label">Data de Abertura</div>
+                <div class="value" id="resAbertura">-</div>
+            </div>
+            <div class="info-box highlight">
+                <div class="label">Simples Nacional</div>
+                <div class="value" id="resRegime">-</div>
+            </div>
+
+            <div class="info-box full-width highlight">
+                <div class="label">Inscrição Estadual (IE)</div>
+                <div class="value" id="resInscricaoEstadual">-</div>
+            </div>
+
+            <div class="info-box full-width highlight">
+                <div class="label">Quadro de Sócios e Administradores (QSA)</div>
+                <div class="value" id="resQSA">Buscando sócios...</div>
+            </div>
+
+            <div class="info-box full-width">
+                <div class="label">Atividade Principal (CNAE)</div>
+                <div class="value" id="resCnaePrincipal">-</div>
+            </div>
+            <div class="info-box full-width">
+                <div class="label">Atividades Secundárias (CNAE)</div>
+                <div class="value" id="resCnaeSecundarios">-</div>
+            </div>
+            <div class="info-box">
+                <div class="label">Telefone da Empresa</div>
+                <div class="value" id="resTelefone">-</div>
+            </div>
+            <div class="info-box">
+                <div class="label">Cidade / UF</div>
+                <div class="value" id="resLocalidade">-</div>
+            </div>
+            
+            <div class="info-box full-width clickable" onclick="abrirModalEnderecoEmpresa()" title="Clique para ver no mapa">
+                <div class="label">Logradouro / Endereço (Clique para Ver Localização) 📍</div>
+                <div class="value" id="resEndereco">-</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CONTAINER CONSULTA LOCAL / ENDEREÇO / CEP -->
+<div class="container">
+    <h2>Busca de Local, Endereço ou CEP</h2>
+    
+    <div class="form-grid">
+        <select id="ufSelect" onchange="carregarCidadesPorUF()">
+            <option value="">Selecione o Estado (UF) *</option>
+            <option value="AC">AC</option><option value="AL">AL</option><option value="AP">AP</option>
+            <option value="AM">AM</option><option value="BA">BA</option><option value="CE">CE</option>
+            <option value="DF">DF</option><option value="ES">ES</option><option value="GO">GO</option>
+            <option value="MA">MA</option><option value="MT">MT</option><option value="MS">MS</option>
+            <option value="MG">MG</option><option value="PA">PA</option><option value="PB">PB</option>
+            <option value="PR">PR</option><option value="PE">PE</option><option value="PI">PI</option>
+            <option value="RJ">RJ</option><option value="RN">RN</option><option value="RS">RS</option>
+            <option value="RO">RO</option><option value="RR">RR</option><option value="SC">SC</option>
+            <option value="SP">SP</option><option value="SE">SE</option><option value="TO">TO</option>
+        </select>
+
+        <div class="suggestions-container">
+            <input type="text" id="cidadeInput" placeholder="Cidade (ex: Goiânia) *" autocomplete="off">
+            <div id="cidadesList" class="suggestions-list"></div>
+        </div>
+    </div>
+
+    <div class="suggestions-container">
+        <input type="text" id="cepRuaInput" placeholder="Digite o CEP, Rua ou Nome do Local (ex: clinica idea)" autocomplete="off">
+        <div id="suggestionsList" class="suggestions-list"></div>
+    </div>
+
+    <button id="btnConsultarCep" onclick="consultarEndereçoHibrido()" style="margin-top: 10px;">Buscar no Mapa</button>
+
+    <div id="loadingCep" class="loading">Buscando locais na cidade...</div>
+    <div id="errorMessageCep" class="error"></div>
+</div>
+
+<!-- MODAL CEP / LOCAL / NAVEGAÇÃO -->
+<div id="cepModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Detalhes do Endereço / Local</h3>
+            <button class="close-btn" onclick="fecharModalCep()">&times;</button>
+        </div>
+        
+        <div class="info-grid">
+            <div class="info-box full-width highlight">
+                <div class="label">Nome do Local / Estabelecimento</div>
+                <div class="value" id="resNomeLocal">-</div>
+            </div>
+            <div class="info-box">
+                <div class="label">CEP</div>
+                <div class="value" id="resCep">-</div>
+            </div>
+            <div class="info-box">
+                <div class="label">Estado (UF)</div>
+                <div class="value" id="resCepUf">-</div>
+            </div>
+            <div class="info-box full-width">
+                <div class="label">Logradouro / Rua</div>
+                <div class="value" id="resCepRua">-</div>
+            </div>
+            <div class="info-box full-width">
+                <div class="label">Bairro</div>
+                <div class="value" id="resCepBairro">-</div>
+            </div>
+            <div class="info-box">
+                <div class="label">Cidade</div>
+                <div class="value" id="resCepCidade">-</div>
+            </div>
+            <div class="info-box">
+                <div class="label">Complemento / Referência</div>
+                <div class="value" id="resCepComp">-</div>
+            </div>
+            <div class="info-box full-width highlight">
+                <div class="label">Navegação Google Maps</div>
+                <div class="value">
+                    <a id="btnMap" href="#" target="_blank" class="map-btn">Abrir no Google Maps 📍</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let empresaAtualDados = null;
+
+    /* --- LÓGICA DO CNPJ E QUADRO DE SÓCIOS (QSA) --- */
+    let debounceCnpjTimer;
+    const cnpjInput = document.getElementById('cnpjInput');
+    const cnpjSuggestionsList = document.getElementById('cnpjSuggestionsList');
+
+    cnpjInput.addEventListener('input', function (e) {
+        clearTimeout(debounceCnpjTimer);
+        let value = e.target.value;
+        const apenasNumeros = value.replace(/\D/g, '');
+
+        if (apenasNumeros.length > 0 && apenasNumeros.length <= 14 && !/[a-zA-Z]/.test(value)) {
+            cnpjSuggestionsList.style.display = 'none';
+            if (apenasNumeros.length > 12) {
+                value = apenasNumeros.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
+            } else if (apenasNumeros.length > 8) {
+                value = apenasNumeros.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})$/, "$1.$2.$3/$4");
+            } else if (apenasNumeros.length > 5) {
+                value = apenasNumeros.replace(/^(\d{2})(\d{3})(\d{3})$/, "$1.$2.$3");
+            } else if (apenasNumeros.length > 2) {
+                value = apenasNumeros.replace(/^(\d{2})(\d{3})$/, "$1.$2");
+            }
+            e.target.value = value;
+        } else if (value.trim().length >= 3) {
+            debounceCnpjTimer = setTimeout(() => buscarEmpresasPorNome(value.trim()), 500);
+        } else {
+            cnpjSuggestionsList.style.display = 'none';
+        }
+    });
+
+    async function buscarEmpresasPorNome(termo) {
+        try {
+            const response = await fetch(`https://publica.cnpj.ws/cnpj/pesquisa?query=${encodeURIComponent(termo)}&limite=5`);
+            if (!response.ok) return;
+            const data = await response.json();
+
+            if (data.estabelecimento && data.estabelecimento.length > 0) {
+                renderizarSugestoesCnpj(data.estabelecimento);
+            } else {
+                cnpjSuggestionsList.style.display = 'none';
+            }
+        } catch (e) {
+            cnpjSuggestionsList.style.display = 'none';
+        }
+    }
+
+    function renderizarSugestoesCnpj(lista) {
+        cnpjSuggestionsList.innerHTML = '';
+        lista.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'suggestion-item';
+            const cnpjFormatado = item.cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
+            const nome = item.razao_social || item.nome_fantasia || 'Sem nome registrado';
+            div.innerHTML = `<b>${nome}</b><br><small>CNPJ: ${cnpjFormatado} - ${item.cidade.nome}/${item.estado.sigla}</small>`;
+            div.onclick = () => {
+                cnpjInput.value = cnpjFormatado;
+                cnpjSuggestionsList.style.display = 'none';
+                buscarDadosCNPJ(item.cnpj);
+            };
+            cnpjSuggestionsList.appendChild(div);
+        });
+        cnpjSuggestionsList.style.display = 'block';
+    }
+
+    function consultarCNPJOuNome() {
+        const input = cnpjInput.value.trim();
+        const cnpjLimpo = input.replace(/\D/g, '');
+
+        if (cnpjLimpo.length === 14) {
+            buscarDadosCNPJ(cnpjLimpo);
+        } else if (input.length >= 3) {
+            buscarEmpresasPorNome(input);
+        } else {
+            showError("Digite um CNPJ válido de 14 dígitos ou o nome da empresa com pelo menos 3 caracteres.");
+        }
+    }
+
+    async function buscarDadosCNPJ(cnpjLimpo) {
+        const btn = document.getElementById('btnConsultar');
+        const loading = document.getElementById('loading');
+        const errorDiv = document.getElementById('errorMessage');
+
+        errorDiv.style.display = 'none';
+        cnpjSuggestionsList.style.display = 'none';
+
+        btn.disabled = true;
+        loading.style.display = 'block';
+
+        // Dispara a busca da Inscrição Estadual (gratuita, via CNPJ.ws) em paralelo,
+        // sem travar o carregamento dos demais dados do CNPJ
+        document.getElementById('resInscricaoEstadual').innerText = 'Buscando Inscrição Estadual...';
+        buscarInscricaoEstadual(cnpjLimpo);
+
+        try {
+            const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpjLimpo}`);
+
+            if (!response.ok) {
+                throw new Error("CNPJ não encontrado ou erro na resposta da consulta.");
+            }
+
+            const data = await response.json();
+            
+            document.getElementById('resCnpj').innerText = data.cnpj ? data.cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5") : '-';
+            document.getElementById('resSituacao').innerText = data.descricao_situacao_cadastral || 'Não Informado';
+            document.getElementById('resNome').innerText = data.razao_social || 'Não Informado';
+            document.getElementById('resFantasia').innerText = data.nome_fantasia || 'Não Possui';
+            
+            if (data.data_inicio_atividade) {
+                const partes = data.data_inicio_atividade.split('-');
+                document.getElementById('resAbertura').innerText = `${partes[2]}/${partes[1]}/${partes[0]}`;
+            } else {
+                document.getElementById('resAbertura').innerText = 'Não Informado';
+            }
+
+            if (data.opcao_pelo_simples === true) {
+                document.getElementById('resRegime').innerText = `Optante (Desde ${data.data_opcao_pelo_simples || 'N/I'})`;
+            } else if (data.opcao_pelo_simples === false) {
+                document.getElementById('resRegime').innerText = "Não Optante";
+            } else {
+                document.getElementById('resRegime').innerText = "Não informado";
+            }
+
+            const qsaContainer = document.getElementById('resQSA');
+            if (data.qsa && data.qsa.length > 0) {
+                let qsaHtml = '<ul class="qsa-list">';
+                data.qsa.forEach(socio => {
+                    const nomeSocio = socio.nome_socio || 'Nome não informado';
+                    const qualificacao = socio.qualificacao_socio || 'Sócio/Administrador';
+                    const faixaEtaria = socio.faixa_etaria ? ` (${socio.faixa_etaria})` : '';
+                    
+                    const telSocio = (socio.telefone || socio.ddd_telefone_1 || socio.celular) 
+                        ? `<br>📞 Tel Sócio: ${socio.telefone || socio.ddd_telefone_1 || socio.celular}` 
+                        : '<br><small style="color:#888;">📞 (Telefone do sócio não informado)</small>';
+
+                    qsaHtml += `<li><b>${nomeSocio}</b> - <i>${qualificacao}</i>${faixaEtaria}${telSocio}</li>`;
+                });
+                qsaHtml += '</ul>';
+                qsaContainer.innerHTML = qsaHtml;
+            } else {
+                qsaContainer.innerText = 'Nenhum sócio ou administrador registrado neste CNPJ (Empresa Individual, MEI ou EIRELI).';
+            }
+
+            if (data.cnae_fiscal && data.cnae_fiscal_descricao) {
+                document.getElementById('resCnaePrincipal').innerText = `${data.cnae_fiscal} - ${data.cnae_fiscal_descricao}`;
+            } else {
+                document.getElementById('resCnaePrincipal').innerText = 'Não Informado';
+            }
+
+            const cnaeSecContainer = document.getElementById('resCnaeSecundarios');
+            if (data.cnaes_secundarios && data.cnaes_secundarios.length > 0) {
+                let listHtml = '<ul style="margin:0; padding-left:15px;">';
+                data.cnaes_secundarios.forEach(item => {
+                    listHtml += `<li><b>${item.codigo}</b> - ${item.descricao}</li>`;
+                });
+                listHtml += '</ul>';
+                cnaeSecContainer.innerHTML = listHtml;
+            } else {
+                cnaeSecContainer.innerText = 'Nenhuma atividade secundária cadastrada';
+            }
+
+            document.getElementById('resTelefone').innerText = data.ddd_telefone_1 ? `(${data.ddd_telefone_1})` : 'Não Informado';
+            document.getElementById('resLocalidade').innerText = `${data.municipio || ''} / ${data.uf || ''}`;
+
+            const tipoLogradouro = data.descricao_tipo_de_logradouro || '';
+            const logradouro = data.logradouro || '';
+            const num = data.numero || 'S/N';
+            const comp = data.complemento ? ` - ${data.complemento}` : '';
+            const bairro = data.bairro ? `, ${data.bairro}` : '';
+            const enderecoFormatado = `${tipoLogradouro} ${logradouro}, Nº ${num}${comp}${bairro}`.trim();
+
+            document.getElementById('resEndereco').innerText = enderecoFormatado || 'Não Informado';
+
+            empresaAtualDados = {
+                nomeLocal: data.nome_fantasia || data.razao_social || 'Empresa',
+                cep: data.cep || '',
+                state: data.uf || '',
+                city: data.municipio || '',
+                neighborhood: data.bairro || '',
+                street: `${tipoLogradouro} ${logradouro}`.trim(),
+                complement: `Nº ${num}${comp}`
+            };
+
+            abrirModal();
+
+        } catch (error) {
+            showError(error.message);
+        } finally {
+            btn.disabled = false;
+            loading.style.display = 'none';
+        }
+    }
+
+    /* --- BUSCA GRATUITA DA INSCRIÇÃO ESTADUAL (CNPJ.ws) ---
+       A IE Estadual é padronizada e coberta por essa API pública gratuita.
+       A IE Municipal não é buscada aqui pois varia por prefeitura e não
+       possui uma fonte pública unificada. */
+    async function buscarInscricaoEstadual(cnpjLimpo) {
+        const ieContainer = document.getElementById('resInscricaoEstadual');
+        try {
+            const response = await fetch(`https://publica.cnpj.ws/cnpj/${cnpjLimpo}`);
+            if (!response.ok) throw new Error('Falha na consulta da IE');
+
+            const data = await response.json();
+            const lista = data.estabelecimento && data.estabelecimento.inscricoes_estaduais;
+
+            if (lista && lista.length > 0) {
+                let ieHtml = '<ul class="qsa-list">';
+                lista.forEach(ie => {
+                    const uf = ie.estado ? ie.estado.sigla : 'UF não informada';
+                    const situacao = ie.ativo ? '✅ Ativa' : '❌ Inativa';
+                    ieHtml += `<li><b>${ie.inscricao_estadual}</b> - ${uf} (${situacao})</li>`;
+                });
+                ieHtml += '</ul>';
+                ieContainer.innerHTML = ieHtml;
+            } else {
+                ieContainer.innerText = 'Nenhuma Inscrição Estadual localizada nesta base.';
+            }
+        } catch (e) {
+            ieContainer.innerText = 'Não foi possível consultar a Inscrição Estadual no momento.';
+        }
+    }
+
+    function abrirModalEnderecoEmpresa() {
+        if (!empresaAtualDados) return;
+        fecharModal();
+        exibirModalCep(empresaAtualDados);
+    }
+
+    function abrirModal() { document.getElementById('cnpjModal').style.display = 'flex'; }
+    function fecharModal() { document.getElementById('cnpjModal').style.display = 'none'; }
+    function showError(msg) {
+        const errorDiv = document.getElementById('errorMessage');
+        errorDiv.innerText = msg;
+        errorDiv.style.display = 'block';
+    }
+
+    /* --- LÓGICA DE AUTOCOMPLETE PARA CIDADES (IBGE) --- */
+    let listaCidadesUF = [];
+    const cidadeInput = document.getElementById('cidadeInput');
+    const cidadesList = document.getElementById('cidadesList');
+
+    async function carregarCidadesPorUF() {
+        const uf = document.getElementById('ufSelect').value;
+        listaCidadesUF = [];
+        cidadeInput.value = '';
+        cidadesList.style.display = 'none';
+
+        if (!uf) return;
+
+        try {
+            const response = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios`);
+            if (response.ok) {
+                const data = await response.json();
+                listaCidadesUF = data.map(m => m.nome);
+            }
+        } catch (e) {
+            console.error("Erro ao carregar cidades da UF");
+        }
+    }
+
+    cidadeInput.addEventListener('input', function () {
+        const termo = this.value.toLowerCase().trim();
+        if (termo.length < 1 || listaCidadesUF.length === 0) {
+            cidadesList.style.display = 'none';
+            return;
+        }
+
+        const filtradas = listaCidadesUF.filter(c => 
+            c.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(
+                termo.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+            )
+        );
+
+        renderizarSugestoesCidades(filtradas);
+    });
+
+    function renderizarSugestoesCidades(lista) {
+        cidadesList.innerHTML = '';
+        if (lista.length === 0) {
+            cidadesList.style.display = 'none';
+            return;
+        }
+
+        lista.slice(0, 8).forEach(cidade => {
+            const div = document.createElement('div');
+            div.className = 'suggestion-item';
+            div.innerHTML = `<b>${cidade}</b>`;
+            div.onclick = () => {
+                cidadeInput.value = cidade;
+                cidadesList.style.display = 'none';
+            };
+            cidadesList.appendChild(div);
+        });
+        cidadesList.style.display = 'block';
+    }
+
+    /* --- LÓGICA DE CALIBRAGEM E BUSCA DE LOCAL / EMPRESA / ENDEREÇO --- */
+    let debounceTimer;
+    const cepRuaInput = document.getElementById('cepRuaInput');
+    const suggestionsList = document.getElementById('suggestionsList');
+
+    cepRuaInput.addEventListener('input', function () {
+        clearTimeout(debounceTimer);
+        const query = this.value.trim();
+        const cepLimpo = query.replace(/\D/g, '');
+
+        if (cepLimpo.length === 8) {
+            suggestionsList.style.display = 'none';
+            return;
+        }
+
+        if (query.length >= 3) {
+            debounceTimer = setTimeout(() => buscarSugestoesHibridas(query), 400);
+        } else {
+            suggestionsList.style.display = 'none';
+        }
+    });
+
+    async function buscarSugestoesHibridas(query) {
+        const uf = document.getElementById('ufSelect').value;
+        const cidade = cidadeInput.value.trim();
+        const errorDiv = document.getElementById('errorMessageCep');
+        errorDiv.style.display = 'none';
+
+        if (!uf || !cidade) {
+            showErrorCep("Para buscar um local ou rua, selecione o Estado (UF) e digite a Cidade primeiro.");
+            return;
+        }
+
+        // CAMADA 1: Busca geográfica no Nominatim (OpenStreetMap)
+        try {
+            const termoComposto = `${query}, ${cidade}, ${uf}, Brasil`;
+            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termoComposto)}&addressdetails=1&limit=8`);
+            
+            if (response.ok) {
+                const data = await response.json();
+                if (Array.isArray(data) && data.length > 0) {
+                    renderizarSugestoesNominatim(data);
+                    return;
+                }
+            }
+        } catch (e) {}
+
+        // CAMADA 2: Busca por empresas/estabelecimentos via CNPJ público se não estiver no mapa
+        try {
+            const responseCnpj = await fetch(`https://publica.cnpj.ws/cnpj/pesquisa?query=${encodeURIComponent(query)}&limite=8`);
+            if (responseCnpj.ok) {
+                const dataCnpj = await responseCnpj.json();
+                if (dataCnpj.estabelecimento && dataCnpj.estabelecimento.length > 0) {
+                    // Filtra empresas no estado informado
+                    const empresasFiltradas = dataCnpj.estabelecimento.filter(e => 
+                        e.estado && e.estado.sigla.toUpperCase() === uf.toUpperCase()
+                    );
+
+                    if (empresasFiltradas.length > 0) {
+                        renderizarSugestoesEmpresas(empresasFiltradas);
+                        return;
+                    }
+                }
+            }
+        } catch (e) {}
+
+        // CAMADA 3: Fallback de sugestão direta para busca no Google Maps
+        renderizarSugestoesFallbackGoogleMaps(query, cidade, uf);
+    }
+
+    function renderizarSugestoesNominatim(lista) {
+    suggestionsList.innerHTML = '';
+    lista.forEach(item => {
+        const addr = item.address || {};
+        
+        // Pega o número predial se existir, senão define como "S/N"
+        const numero = addr.house_number ? `Nº ${addr.house_number}` : 'S/N';
+        
+        // Mapeia todas as possíveis variações que o OpenStreetMap usa para Setor/Bairro
+        const bairro = addr.suburb || addr.quarter || addr.neighbourhood || addr.district || addr.city_district || 'Bairro não informado';
+        
+        const partesNome = item.display_name.split(',');
+        const nomePrincipal = partesNome[0].trim();
+        const rua = addr.road || addr.pedestrian || nomePrincipal;
+        const cidade = addr.city || addr.town || addr.municipality || document.getElementById('cidadeInput').value;
+        const estado = addr.state || document.getElementById('ufSelect').value;
+        const cep = addr.postcode || 'Não informado';
+
+        const div = document.createElement('div');
+        div.className = 'suggestion-item';
+        div.innerHTML = `<b>📍 ${nomePrincipal} (${numero})</b><br><small>${rua}, ${bairro} - ${cidade}/${estado}</small>`;
+        
+        div.onclick = () => {
+            exibirModalCep({
+                nomeLocal: nomePrincipal,
+                cep: cep,
+                state: estado,
+                city: cidade,
+                neighborhood: bairro,
+                street: rua,
+                houseNumber: numero,
+                complement: partesNome.length > 2 ? partesNome[1].trim() : ''
+            });
+            suggestionsList.style.display = 'none';
+        };
+        suggestionsList.appendChild(div);
+    });
+    suggestionsList.style.display = 'block';
+}
+
+    function renderizarSugestoesEmpresas(lista) {
+        suggestionsList.innerHTML = '';
+        lista.forEach(item => {
+            const nome = item.nome_fantasia || item.razao_social || 'Empresa Cadastrada';
+            const logradouro = `${item.tipo_logradouro || ''} ${item.logradouro || ''}`.trim();
+            const num = item.numero || 'S/N';
+            const bairro = item.bairro || 'Bairro não informado';
+            const cidade = item.cidade ? item.cidade.nome : document.getElementById('cidadeInput').value;
+            const estado = item.estado ? item.estado.sigla : document.getElementById('ufSelect').value;
+
+            const div = document.createElement('div');
+            div.className = 'suggestion-item';
+            div.innerHTML = `<b>🏢 ${nome}</b><br><small>${logradouro}, Nº ${num}, ${bairro} - ${cidade}/${estado}</small>`;
+            div.onclick = () => {
+                exibirModalCep({
+                    nomeLocal: nome,
+                    cep: item.cep || '',
+                    state: estado,
+                    city: cidade,
+                    neighborhood: bairro,
+                    street: logradouro,
+                    complement: `Nº ${num}`
+                });
+                suggestionsList.style.display = 'none';
+            };
+            suggestionsList.appendChild(div);
+        });
+        suggestionsList.style.display = 'block';
+    }
+
+    /* --- TRATAMENTO DE FALLBACK DIRETO PARA GOOGLE MAPS --- */
+function renderizarSugestoesFallbackGoogleMaps(query, cidade, uf) {
+    suggestionsList.innerHTML = '';
+    const div = document.createElement('div');
+    div.className = 'suggestion-item';
+    div.innerHTML = `<b>🔍 Buscar "${query}" diretamente no Google Maps</b><br><small>Localizar estabelecimento em ${cidade} / ${uf}</small>`;
+    
+    div.onclick = () => {
+        // Redireciona diretamente para o Google Maps com o termo correto
+        const termoCompleto = encodeURIComponent(`${query}, ${cidade} - ${uf}`);
+        const urlGoogleMaps = `https://www.google.com/maps/search/?api=1&query=${termoCompleto}`;
+        
+        // Abre o Maps em nova aba sem preencher modal com dados fictícios
+        window.open(urlGoogleMaps, '_blank');
+        suggestionsList.style.display = 'none';
+    };
+    
+    suggestionsList.appendChild(div);
+    suggestionsList.style.display = 'block';
+}
+
+    async function consultarEndereçoHibrido() {
+        const query = cepRuaInput.value.trim();
+        const cepLimpo = query.replace(/\D/g, '');
+        const uf = document.getElementById('ufSelect').value;
+        const cidade = cidadeInput.value.trim();
+
+        const btn = document.getElementById('btnConsultarCep');
+        const loading = document.getElementById('loadingCep');
+        const errorDiv = document.getElementById('errorMessageCep');
+
+        errorDiv.style.display = 'none';
+        suggestionsList.style.display = 'none';
+
+        if (cepLimpo.length === 8) {
+            btn.disabled = true;
+            loading.style.display = 'block';
+
+            try {
+                const response = await fetch(`https://brasilapi.com.br/api/cep/v2/${cepLimpo}`);
+                if (!response.ok) throw new Error("CEP não encontrado.");
+                const data = await response.json();
+                exibirModalCep({
+                    nomeLocal: data.street || 'Endereço por CEP',
+                    ...data
+                });
+            } catch (error) {
+                showErrorCep(error.message);
+            } finally {
+                btn.disabled = false;
+                loading.style.display = 'none';
+            }
+        } else {
+            if (!uf || !cidade) {
+                showErrorCep("Por favor, selecione o Estado (UF) e informe a Cidade antes de buscar.");
+                return;
+            }
+
+            if (query.length < 3) {
+                showErrorCep("Digite um CEP de 8 dígitos ou ao menos 3 caracteres para o local/endereço.");
+                return;
+            }
+
+            btn.disabled = true;
+            loading.style.display = 'block';
+
+            try {
+                await buscarSugestoesHibridas(query);
+            } catch (error) {
+                showErrorCep("Erro ao buscar local ou endereço.");
+            } finally {
+                btn.disabled = false;
+                loading.style.display = 'none';
+            }
+        }
+    }
+
+    function exibirModalCep(data) {
+    document.getElementById('resNomeLocal').innerText = data.nomeLocal || data.street || '-';
+    document.getElementById('resCep').innerText = data.cep ? data.cep.replace(/^(\d{5})(\d{3})$/, "$1-$2") : '-';
+    document.getElementById('resCepUf').innerText = data.state || data.uf || 'Não Informado';
+    
+    // Concatena o logradouro com o número (ou S/N)
+    const ruaBase = data.street || data.logradouro || 'Não Informado';
+    const num = data.houseNumber || (data.numero ? `Nº ${data.numero}` : 'S/N');
+    document.getElementById('resCepRua').innerText = ruaBase !== 'Não Informado' ? `${ruaBase}, ${num}` : ruaBase;
+    
+    document.getElementById('resCepBairro').innerText = data.neighborhood || data.bairro || 'Bairro não informado';
+    document.getElementById('resCepCidade').innerText = data.city || data.localidade || 'Não Informado';
+    document.getElementById('resCepComp').innerText = data.complement || data.complemento || 'Sem complemento';
+
+    const termoMapa = `${ruaBase}, ${num}`;
+    const cidade = data.city || data.localidade || '';
+    const uf = data.state || data.uf || '';
+    const queryMapa = encodeURIComponent(`${termoMapa}, ${cidade} - ${uf}`);
+    
+    document.getElementById('btnMap').href = `https://www.google.com/maps/search/?api=1&query=${queryMapa}`;
+
+    abrirModalCep();
+}
+
+    function abrirModalCep() { document.getElementById('cepModal').style.display = 'flex'; }
+    function fecharModalCep() { document.getElementById('cepModal').style.display = 'none'; }
+    function showErrorCep(msg) {
+        const errorDiv = document.getElementById('errorMessageCep');
+        errorDiv.innerText = msg;
+        errorDiv.style.display = 'block';
+    }
+
+    /* Ocultar listas ao clicar fora */
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.suggestions-container')) {
+            suggestionsList.style.display = 'none';
+            cidadesList.style.display = 'none';
+            cnpjSuggestionsList.style.display = 'none';
+        }
+    });
+
+    /* Fechar modais ao clicar fora */
+    window.onclick = function(event) {
+        if (event.target === document.getElementById('cnpjModal')) fecharModal();
+        if (event.target === document.getElementById('cepModal')) fecharModalCep();
+    }
+</script>
+
+</body>
+</html>
